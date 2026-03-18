@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/pointcloud2ifc/__init__.py
+src/pointcloud2ifc/cli.py
+src/pointcloud2ifc/ifc_builder.py
+src/pointcloud2ifc/io.py
+src/pointcloud2ifc/segmentation.py
+src/pointcloud2ifc.egg-info/PKG-INFO
+src/pointcloud2ifc.egg-info/SOURCES.txt
+src/pointcloud2ifc.egg-info/dependency_links.txt
+src/pointcloud2ifc.egg-info/entry_points.txt
+src/pointcloud2ifc.egg-info/requires.txt
+src/pointcloud2ifc.egg-info/top_level.txt
