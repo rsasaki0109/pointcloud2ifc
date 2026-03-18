@@ -33,7 +33,7 @@ IFC File (.ifc)
 |----------|-------------|
 | `dbscan` | DBSCAN clustering followed by heuristic labelling based on surface normals and geometry |
 | `ransac` | Iterative RANSAC plane extraction; planes classified by normal orientation |
-| `ml`     | ML-based segmentation using a trained model (not yet implemented) |
+| `ml`     | Pretrained PointNet segmentation (requires `pip install 'pointcloud2ifc[ml]'`) |
 
 ### BIMNet 14-category labels
 
@@ -64,6 +64,12 @@ For development (includes pytest and ruff):
 
 ```bash
 pip install -e ".[dev]"
+```
+
+For ML-based segmentation (PointNet backbone, requires PyTorch):
+
+```bash
+pip install -e ".[ml]"
 ```
 
 For LAS/LAZ support:
@@ -101,7 +107,8 @@ src/pointcloud2ifc/
   __init__.py        # BIMNet category definitions
   cli.py             # Click CLI (convert, evaluate)
   io.py              # Point cloud loading, IFC writing
-  segmentation.py    # Semantic segmentation (DBSCAN, RANSAC, ML stub)
+  segmentation.py    # Semantic segmentation (DBSCAN, RANSAC, ML)
+  pretrained.py      # Pretrained PointNet segmentation backend
   ifc_builder.py     # IFC model construction from segments
 ```
 

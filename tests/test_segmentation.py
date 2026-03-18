@@ -9,6 +9,14 @@ import pytest
 from pointcloud2ifc.segmentation import Segment, segment
 
 
+def _has_torch() -> bool:
+    try:
+        import torch  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 class TestSegmentDBSCAN:
     """Tests for DBSCAN-based segmentation."""
 
@@ -69,6 +77,13 @@ class TestSegmentErrors:
         with pytest.raises(ValueError, match="Unknown segmentation method"):
             segment(synthetic_room_pcd, method="nonexistent")
 
-    def test_ml_not_implemented(self, synthetic_room_pcd: o3d.geometry.PointCloud):
-        with pytest.raises(NotImplementedError):
-            segment(synthetic_room_pcd, method="ml")
+    @pytest.mark.skipif(
+        not _has_torch(), reason="torch not installed"
+    )
+    def test_ml_returns_segments(self, synthetic_room_pcd: o3d.geometry.PointCloud):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            segments = segment(synthetic_room_pcd, method="ml")
+        assert isinstance(segments, list)
+        assert all(isinstance(s, Segment) for s in segments)

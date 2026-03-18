@@ -12,6 +12,14 @@ from click.testing import CliRunner
 from pointcloud2ifc.cli import cli
 
 
+def _has_torch() -> bool:
+    try:
+        import torch  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 @pytest.fixture
 def runner() -> CliRunner:
     return CliRunner()
@@ -100,9 +108,13 @@ class TestCLI:
         result = runner.invoke(cli, ["convert", "/nonexistent/file.ply"])
         assert result.exit_code != 0
 
-    def test_convert_ml_not_implemented(self, runner: CliRunner, sample_ply: Path):
+    @pytest.mark.skipif(
+        not _has_torch(), reason="torch not installed"
+    )
+    def test_convert_ml_succeeds(self, runner: CliRunner, sample_ply: Path):
         result = runner.invoke(cli, [
             "convert", str(sample_ply),
             "--method", "ml",
         ])
-        assert result.exit_code != 0
+        assert result.exit_code == 0
+        assert "Segments found" in result.output
