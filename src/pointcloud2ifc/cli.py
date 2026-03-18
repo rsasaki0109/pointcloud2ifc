@@ -46,6 +46,9 @@ def convert(input_path: Path, output: Path | None, method: str, voxel_size: floa
     click.echo(f"  Points after downsampling: {len(pcd.points)}")
 
     click.echo(f"Segmenting with method: {method}")
+    if method == "ml":
+        click.echo("  Note: pretrained weights improve results significantly.")
+        click.echo("  Without weights the model uses random initialisation.")
     segments = segment(pcd, method=method)
     click.echo(f"  Segments found: {len(segments)}")
 

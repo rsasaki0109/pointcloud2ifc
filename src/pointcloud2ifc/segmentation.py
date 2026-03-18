@@ -173,11 +173,13 @@ def _segment_ransac(pcd: o3d.geometry.PointCloud) -> list[Segment]:
 # ---------------------------------------------------------------------------
 
 def _segment_ml(pcd: o3d.geometry.PointCloud) -> list[Segment]:
-    """Segment using a trained ML model (BIMNet-style).
+    """Segment using a pretrained ML model (PointNet backbone).
 
-    Not yet implemented - requires a trained point cloud segmentation model.
+    Requires PyTorch.  Install with ``pip install 'pointcloud2ifc[ml]'``.
+    Without pretrained weights the model uses random initialisation, so
+    results will be arbitrary until proper weights are supplied.
     """
-    raise NotImplementedError(
-        "ML-based segmentation is not yet implemented. "
-        "Use --method dbscan or --method ransac as a baseline."
-    )
+    from pointcloud2ifc.pretrained import PretrainedSegmenter
+
+    segmenter = PretrainedSegmenter(backend="pointnet")
+    return segmenter.segment(pcd)
