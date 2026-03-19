@@ -88,5 +88,49 @@ def evaluate(generated_ifc: Path, ground_truth_ifc: Path, iou_threshold: float):
     click.echo("Detailed evaluation metrics not yet implemented.")
 
 
+@cli.command()
+@click.argument("input_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output directory for IFC and JSON files. Defaults to input directory.",
+)
+@click.option(
+    "--method",
+    type=click.Choice(["dbscan", "ransac", "ml"]),
+    default="dbscan",
+    help="Segmentation method to use.",
+)
+@click.option("--voxel-size", type=float, default=0.05, help="Voxel size for downsampling (m).")
+def batch(input_dir: Path, output_dir: Path | None, method: str, voxel_size: float):
+    """Batch-convert all point clouds in a directory to IFC.
+
+    Processes all PLY, PCD, and LAS/LAZ files found in INPUT_DIR.
+    Generates an IFC file and a JSON report for each input, plus a
+    batch_summary.json with overall statistics.
+    """
+    from pointcloud2ifc.pipeline import Scan2IFCPipeline
+
+    pipeline = Scan2IFCPipeline()
+
+    click.echo(f"Scanning directory: {input_dir}")
+    reports = pipeline.run_batch(input_dir, output_dir, method=method, voxel_size=voxel_size)
+
+    succeeded = sum(1 for r in reports if r.success)
+    failed = sum(1 for r in reports if not r.success)
+
+    click.echo(f"\nBatch complete: {succeeded} succeeded, {failed} failed out of {len(reports)}")
+
+    for r in reports:
+        status = "OK" if r.success else f"FAIL: {r.error}"
+        click.echo(f"  {r.input_path} -> {r.output_path} [{status}]")
+
+    if output_dir:
+        click.echo(f"\nSummary: {output_dir / 'batch_summary.json'}")
+    else:
+        click.echo(f"\nSummary: {input_dir / 'batch_summary.json'}")
+
+
 if __name__ == "__main__":
     cli()
