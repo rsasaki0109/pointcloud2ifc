@@ -1,0 +1,121 @@
+name: Scan-to-IFC Pipeline
+
+on:
+  # Manual trigger for ad-hoc conversion
+  workflow_dispatch:
+    inputs:
+      point_cloud_path:
+        description: "Path to point cloud file (relative to repo root)"
+        required: true
+        type: string
+      method:
+        description: "Segmentation method"
+        required: false
+        default: "dbscan"
+        type: choice
+        options:
+          - dbscan
+          - ransac
+          - ml
+      output_path:
+        description: "Output IFC file path (relative to repo root)"
+        required: false
+        default: ""
+        type: string
+      voxel_size:
+        description: "Voxel size for downsampling (metres)"
+        required: false
+        default: "0.05"
+        type: string
+
+  # Reusable workflow: other repos can call this
+  workflow_call:
+    inputs:
+      point_cloud_path:
+        description: "Path to point cloud file (relative to repo root)"
+        required: true
+        type: string
+      method:
+        description: "Segmentation method (dbscan, ransac, ml)"
+        required: false
+        default: "dbscan"
+        type: string
+      output_path:
+        description: "Output IFC file path"
+        required: false
+        default: ""
+        type: string
+      voxel_size:
+        description: "Voxel size for downsampling (metres)"
+        required: false
+        default: "0.05"
+        type: string
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      - name: Checkout pointcloud2ifc
+        uses: actions/checkout@v4
+        with:
+          repository: MapIV/pointcloud2ifc
+          path: _pointcloud2ifc
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pointcloud2ifc
+        run: |
+          python -m pip install --upgrade pip
+          pip install ./_pointcloud2ifc
+
+      - name: Determine output path
+        id: paths
+        run: |
+          INPUT="${{ inputs.point_cloud_path }}"
+          OUTPUT="${{ inputs.output_path }}"
+          if [ -z "$OUTPUT" ]; then
+            OUTPUT="${INPUT%.*}.ifc"
+          fi
+          echo "input=$INPUT" >> "$GITHUB_OUTPUT"
+          echo "output=$OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "report=${OUTPUT%.*}.json" >> "$GITHUB_OUTPUT"
+
+      - name: Run scan-to-IFC conversion
+        run: |
+          pointcloud2ifc convert \
+            "${{ steps.paths.outputs.input }}" \
+            -o "${{ steps.paths.outputs.output }}" \
+            --method "${{ inputs.method }}" \
+            --voxel-size "${{ inputs.voxel_size }}"
+
+      - name: Generate JSON report
+        run: |
+          python -c "
+          from pointcloud2ifc.pipeline import Scan2IFCPipeline
+          pipeline = Scan2IFCPipeline()
+          report = pipeline.run(
+              '${{ steps.paths.outputs.input }}',
+              '${{ steps.paths.outputs.output }}',
+              method='${{ inputs.method }}',
+              voxel_size=float('${{ inputs.voxel_size }}'),
+          )
+          print(f'Segments: {report.segments_found}')
+          print(f'IFC elements: {report.ifc_elements_created}')
+          print(f'Time: {report.processing_time_seconds}s')
+          "
+
+      - name: Upload IFC artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ifc-output
+          path: |
+            ${{ steps.paths.outputs.output }}
+            ${{ steps.paths.outputs.report }}
+          retention-days: 30
